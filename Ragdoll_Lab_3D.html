@@ -1,0 +1,1836 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Ragdoll Lab 3D</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:#101820;color:white;font-family:Arial}
+canvas{display:block}
+button,input,select{font:inherit}
+button{
+ background:#1c3548;color:white;border:1px solid #55758b;
+ border-radius:9px;padding:10px;cursor:pointer;font-weight:bold
+}
+button:hover,button.active{background:#087a9c;border-color:#62dfff}
+input,select{
+ background:#101c28;color:white;border:1px solid #55758b;
+ border-radius:7px;padding:9px;width:100%
+}
+.panel{background:#101923ed;border:1px solid #496174;border-radius:12px;padding:12px}
+.hidden{display:none!important}
+#top{position:fixed;top:10px;left:10px;pointer-events:none}
+#top h2{margin:0;color:#56dfff}
+#hud{position:fixed;inset:0;pointer-events:none}
+#hud button,#hud .panel{pointer-events:auto}
+#stats{position:absolute;right:10px;top:10px;width:190px}
+#health{height:9px;background:#333;border-radius:10px;overflow:hidden}
+#healthbar{height:100%;width:100%;background:#35d77b}
+#message{
+ position:fixed;top:75px;left:50%;transform:translateX(-50%);
+ background:#101923ed;padding:10px 18px;border-radius:10px;
+ pointer-events:none;opacity:0;transition:opacity .2s
+}
+#crosshair{
+ position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+ width:16px;height:16px;pointer-events:none
+}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:white}
+#crosshair:before{width:2px;height:16px;left:7px}
+#crosshair:after{height:2px;width:16px;top:7px}
+#bottom{
+ position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+ display:flex;gap:5px;align-items:center
+}
+#tools{position:absolute;top:100px;left:10px;width:165px}
+#tools button{width:100%;margin:3px 0;text-align:left}
+#help{position:absolute;right:10px;bottom:75px;font-size:12px;color:#c4d5df}
+#menuScreen,#weaponScreen,#modScreen{
+ position:fixed;inset:0;z-index:20;
+ background:linear-gradient(135deg,#07131fef,#102e42ef);
+ display:flex;align-items:center;justify-content:center;
+ padding:15px;overflow:auto
+}
+.menuBox{
+ width:min(650px,100%);padding:25px;
+ background:#101923f5;border:1px solid #4a728d;
+ border-radius:18px;text-align:center;
+ box-shadow:0 20px 80px #0009
+}
+.menuBox h1{font-size:clamp(28px,6vw,48px);color:#57dcff;margin:5px}
+.menuButtons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:25px}
+.menuButtons button{padding:15px}
+#weaponScreen,#modScreen{z-index:30;background:#07131ff2}
+.window{
+ width:min(950px,100%);max-height:90vh;overflow:auto;
+ padding:18px;background:#111e2b;border:1px solid #4a728d;
+ border-radius:16px
+}
+.window h2{color:#57dcff}
+.weaponGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.weaponCard{
+ background:#192d3d;border:1px solid #496174;
+ padding:12px;border-radius:10px;text-align:left;cursor:pointer
+}
+.weaponCard strong{display:block;color:#65dcff;margin-bottom:5px}
+.weaponCard small{color:#b5c7d4}
+.tabs{display:flex;gap:5px;flex-wrap:wrap;margin:12px 0}
+.tabs button{flex:1}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{text-align:left;display:flex;flex-direction:column;gap:5px}
+.field label{color:#a9c5d6;font-size:13px}
+#mobileControls{display:none;position:fixed;inset:0;pointer-events:none}
+#joystick{
+ position:absolute;bottom:25px;left:20px;width:125px;height:125px;
+ border:2px solid #ffffff70;background:#142b3a99;border-radius:50%;
+ pointer-events:auto;touch-action:none
+}
+#stick{
+ position:absolute;width:48px;height:48px;border-radius:50%;
+ background:#59dfffaa;border:2px solid white;
+ left:36px;top:36px
+}
+.mobileRight{
+ position:absolute;right:15px;bottom:25px;
+ display:grid;grid-template-columns:65px 65px;gap:8px;
+ pointer-events:auto
+}
+.mobileRight button{height:58px;padding:4px;background:#142b3add}
+#lookArea{position:absolute;left:35%;top:15%;width:65%;height:65%;pointer-events:auto;touch-action:none}
+#modList{margin-top:15px}
+#modWindow{position:relative;padding-top:48px}
+#closeModsX{position:sticky;top:0;float:right;z-index:5;width:42px;height:42px;padding:0;margin:-35px -5px 0 8px;background:#8e2636;border:1px solid #ff7184;border-radius:12px;font-size:27px;line-height:1}
+#closeModsX:hover{background:#c83249}
+#weaponPreviewWrap{margin:16px 0;padding:12px;background:#0b1722;border:1px solid #35566b;border-radius:13px}
+#weaponPreviewWrap h3{margin:0 0 8px;color:#63ddff}
+#modelPreview{width:100%;height:260px;display:block;border-radius:9px;background:radial-gradient(circle at 50% 40%,#29465a,#08121c 75%)}
+#previewHint{font-size:12px;color:#a9c5d6;margin:8px 0 0}
+#timeFreeze{position:fixed;right:18px;bottom:18px;z-index:12;background:#573b91;border:1px solid #b49aff;box-shadow:0 5px 20px #0008}
+#timeFreeze.frozen{background:#a13b57;border-color:#ff9aad}
+@media(max-width:700px){#modelPreview{height:210px}#timeFreeze{right:12px;bottom:12px}}
+@media(max-width:700px){
+ #stats{width:145px;font-size:11px}
+ #tools{display:none}
+ #help{display:none}
+ #bottom{bottom:165px;width:95%;justify-content:center;flex-wrap:wrap}
+ #bottom button{padding:8px;font-size:11px}
+ .weaponGrid{grid-template-columns:repeat(2,1fr)}
+ .formGrid{grid-template-columns:1fr}
+ .menuButtons{grid-template-columns:1fr}
+ #mobileControls{display:block}
+ #top h2{font-size:16px}
+}
+</style>
+</head>
+<body>
+
+<div id="top"><h2>RAGDOLL LAB 3D</h2><small>PHYSICS SANDBOX</small></div>
+
+<div id="hud" class="hidden">
+ <div id="tools" class="panel">
+  <b>FERRAMENTAS</b>
+  <button data-tool="grab">✋ Agarrar</button>
+  <button data-tool="push">💥 Impacto</button>
+  <button data-tool="shoot" class="active">🎯 Disparar</button>
+  <button data-tool="heal">✚ Curar</button>
+  <button id="openWeapons">🔫 Arsenal</button>
+  <button id="openMods">🛠 Oficina</button>
+  <button id="pause">Ⅱ Pausar</button>
+ </div>
+
+ <div id="stats" class="panel">
+  <b>ALVO</b>
+  <p>Integridade: <b id="hp">100%</b></p>
+  <div id="health"><div id="healthbar"></div></div>
+  <p>Impactos: <b id="hits">0</b></p>
+  <p>Perfurações: <b id="holes">0</b></p>
+  <p>Partes separadas: <b id="severed">0</b></p>
+  <p>Estado: <b id="state">Normal</b></p>
+  <p>Arma: <b id="weaponname">Pistola</b></p>
+  <p>Munição: <b id="ammo">12</b></p>
+ </div>
+
+ <div id="crosshair"></div>
+ <div id="message"></div>
+
+ <div id="bottom" class="panel">
+  <button id="previous">◀</button>
+  <button id="next">▶</button>
+  <button id="fire">DISPARAR</button>
+  <button id="reload">RECARREGAR</button>
+ </div>
+
+ <div id="help" class="panel">
+  WASD mover • Mouse olhar<br>
+  Clique disparar • Espaço pular<br>
+  Q/E trocar arma • R recarregar<br>
+  1-4 selecionar ferramenta
+ </div>
+</div>
+
+<button id="timeFreeze" class="hidden" type="button">❄ PARAR RAGDOLL</button>
+
+<!-- MENU PRINCIPAL -->
+<div id="menuScreen">
+ <div class="menuBox">
+  <h1>RAGDOLL LAB 3D</h1>
+  <p>Laboratório de física e sandbox experimental</p>
+  <p style="color:#8baabd">Crie personagens, teste armas e construa seus próprios mods.</p>
+  <div class="menuButtons">
+   <button id="play">▶ JOGAR</button>
+   <button id="menuWeapons">🔫 ARSENAL</button>
+   <button id="menuMods">🛠 OFICINA DE MODS</button>
+   <button id="menuSettings">⚙ CONTROLES</button>
+  </div>
+  <p style="color:#8198a8;margin-top:22px">RAGDOLL LAB • SANDBOX EDITION</p>
+ </div>
+</div>
+
+<!-- ARSENAL -->
+<div id="weaponScreen" class="hidden">
+ <div class="window">
+  <h2>🔫 ARSENAL COMPLETO</h2>
+  <p>Escolha uma arma para equipar.</p>
+  <div class="tabs">
+   <button data-category="Todas">Todas</button>
+   <button data-category="Pistolas">Pistolas</button>
+   <button data-category="Rifles">Rifles</button>
+   <button data-category="Pesadas">Pesadas</button>
+   <button data-category="Snipers">Snipers</button>
+   <button data-category="Corpo a corpo">Corpo a corpo</button>
+   <button data-category="Especiais">Especiais</button>
+   <button data-category="Arcos">Arcos</button>
+  </div>
+  <div id="weaponGrid" class="weaponGrid"></div>
+  <div style="margin-top:15px">
+   <button id="closeWeapons">VOLTAR</button>
+  </div>
+ </div>
+</div>
+
+<!-- OFICINA -->
+<div id="modScreen" class="hidden">
+ <div class="window" id="modWindow">
+  <button id="closeModsX" type="button" aria-label="Sair da oficina" title="Sair da oficina">×</button>
+  <h2>🛠 OFICINA DE CRIAÇÃO DE MODS</h2>
+  <div id="weaponPreviewWrap">
+   <h3>PRÉVIA 3D DA ARMA</h3>
+   <canvas id="modelPreview"></canvas>
+   <p id="previewHint">A prévia muda automaticamente conforme você altera cor, formato e tamanho.</p>
+  </div>
+  <div class="tabs">
+   <button data-modtab="firearm">Armas de fogo</button>
+   <button data-modtab="melee">Corpo a corpo</button>
+   <button data-modtab="pierce">Perfuração</button>
+   <button data-modtab="model">Modelo 3D</button>
+   <button data-modtab="status">Status</button>
+  </div>
+
+  <div id="modForm" class="formGrid">
+   <div class="field">
+    <label>Nome do mod</label>
+    <input id="modName" value="Minha arma">
+   </div>
+   <div class="field">
+    <label>Categoria</label>
+    <select id="modType">
+     <option value="bullet">Arma de fogo</option>
+     <option value="melee">Corpo a corpo</option>
+     <option value="arrow">Projétil perfurante</option>
+     <option value="power">Arma de energia</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>Cor do modelo</label>
+    <input type="color" id="modColor" value="#42caff">
+   </div>
+   <div class="field">
+    <label>Formato do modelo</label>
+    <select id="modShape">
+     <option value="box">Retangular</option>
+     <option value="long">Alongado</option>
+     <option value="blade">Lâmina</option>
+     <option value="energy">Energia</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>Dano</label>
+    <input type="range" id="modDamage" min="1" max="150" value="35">
+    <span id="damageValue">35</span>
+   </div>
+   <div class="field">
+    <label>Força de impacto</label>
+    <input type="range" id="modPower" min="1" max="60" value="20">
+    <span id="powerValue">20</span>
+   </div>
+   <div class="field">
+    <label>Velocidade</label>
+    <input type="range" id="modSpeed" min="5" max="70" value="30">
+    <span id="speedValue">30</span>
+   </div>
+   <div class="field">
+    <label>Quantidade de munição</label>
+    <input type="range" id="modAmmo" min="1" max="100" value="20">
+    <span id="ammoValue">20</span>
+   </div>
+   <div class="field">
+    <label>Perfuração</label>
+    <select id="modPierce">
+     <option value="false">Não</option>
+     <option value="true">Sim</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>Permitir separar partes do corpo</label>
+    <select id="modCut">
+     <option value="false">Não</option>
+     <option value="true">Sim</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>Tamanho do modelo</label>
+    <input type="range" id="modSize" min="20" max="180" value="80">
+    <span id="sizeValue">80</span>
+   </div>
+   <div class="field">
+    <label>Precisão</label>
+    <input type="range" id="modAccuracy" min="1" max="100" value="80">
+    <span id="accuracyValue">80</span>
+   </div>
+  </div>
+
+  <div style="margin-top:15px;display:flex;gap:8px;flex-wrap:wrap">
+   <button id="createMod">＋ CRIAR MOD</button>
+   <button id="closeMods">VOLTAR</button>
+  </div>
+  <div id="modList"></div>
+ </div>
+</div>
+
+<!-- MOBILE -->
+<div id="mobileControls" class="hidden">
+ <div id="lookArea"></div>
+ <div id="joystick"><div id="stick"></div></div>
+ <div class="mobileRight">
+  <button id="mJump">PULAR</button>
+  <button id="mFire">ATIRAR</button>
+  <button id="mReload">RECARREGAR</button>
+  <button id="mWeapon">TROCAR ARMA</button>
+  <button id="mMenu">MENU</button>
+  <button id="mGrab">AGARRAR</button>
+ </div>
+</div>
+
+<script type="module">
+import * as THREE from
+'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+import * as CANNON from
+'https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js';
+
+// ==========================================
+// CENA
+// ==========================================
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x879eae);
+scene.fog=new THREE.Fog(0x879eae,30,90);
+
+const camera=new THREE.PerspectiveCamera(
+ 75,innerWidth/innerHeight,.1,150
+);
+camera.position.set(0,1.7,5);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff,0x394b59,2));
+
+const sun=new THREE.DirectionalLight(0xffffff,2);
+sun.position.set(-8,15,10);
+sun.castShadow=true;
+sun.shadow.mapSize.set(1024,1024);
+scene.add(sun);
+
+// ==========================================
+// FÍSICA
+// ==========================================
+
+const world=new CANNON.World({
+ gravity:new CANNON.Vec3(0,-9.82,0)
+});
+world.allowSleep=true;
+world.broadphase=new CANNON.SAPBroadphase(world);
+
+const bodyMat=new CANNON.Material('body');
+const floorMat=new CANNON.Material('floor');
+
+world.addContactMaterial(
+ new CANNON.ContactMaterial(bodyMat,floorMat,{
+  friction:.8,restitution:.02
+ })
+);
+
+const floorBody=new CANNON.Body({
+ mass:0,
+ material:floorMat,
+ shape:new CANNON.Plane()
+});
+floorBody.quaternion.setFromEuler(-Math.PI/2,0,0);
+world.addBody(floorBody);
+
+const floor=new THREE.Mesh(
+ new THREE.PlaneGeometry(100,100),
+ new THREE.MeshStandardMaterial({color:0x5d707c,roughness:.9})
+);
+floor.rotation.x=-Math.PI/2;
+floor.receiveShadow=true;
+scene.add(floor);
+
+scene.add(new THREE.GridHelper(100,100,0x354b5b,0x536b78));
+
+function makeWall(x,y,z,sx,sy,sz){
+ const mesh=new THREE.Mesh(
+  new THREE.BoxGeometry(sx,sy,sz),
+  new THREE.MeshStandardMaterial({color:0x536570})
+ );
+ mesh.position.set(x,y,z);
+ mesh.castShadow=true;
+ mesh.receiveShadow=true;
+ scene.add(mesh);
+
+ const b=new CANNON.Body({mass:0});
+ b.addShape(new CANNON.Box(
+  new CANNON.Vec3(sx/2,sy/2,sz/2)
+ ));
+ b.position.set(x,y,z);
+ world.addBody(b);
+}
+
+makeWall(-10,2,-10,1,4,35);
+makeWall(10,2,-10,1,4,35);
+makeWall(0,2,-27,20,4,1);
+
+// ==========================================
+// ESTADO DO JOGO
+// ==========================================
+
+const $=id=>document.getElementById(id);
+
+let playing=false;
+let paused=false;
+let yaw=0,pitch=0;
+let locked=false;
+let tool='shoot';
+let active=null;
+let ragdolls=[];
+let projectiles=[];
+let particles=[];
+let grabbed=null;
+let reloading=false;
+let weaponIndex=0;
+let mods=[];
+let timeFrozen=false;
+let selectedModTab='firearm';
+
+const keys={};
+
+const weapons=[
+ {name:'Pistola',category:'Pistolas',type:'bullet',damage:18,power:9,ammo:12,speed:35},
+ {name:'Magnum',category:'Pistolas',type:'bullet',damage:48,power:15,ammo:6,speed:40,cut:true},
+ {name:'Pistola de Energia',category:'Pistolas',type:'power',damage:30,power:10,ammo:20,speed:38,color:0x49dcff},
+ {name:'SMG',category:'Rifles',type:'bullet',damage:12,power:5,ammo:35,speed:42,automatic:true},
+ {name:'AK-47',category:'Rifles',type:'bullet',damage:25,power:8,ammo:30,speed:48,automatic:true},
+ {name:'Rifle de Assalto',category:'Rifles',type:'bullet',damage:21,power:7,ammo:40,speed:48,automatic:true},
+ {name:'Sniper',category:'Snipers',type:'bullet',damage:85,power:15,ammo:5,speed:70,pierce:true,cut:true},
+ {name:'Sniper Pesada',category:'Snipers',type:'bullet',damage:120,power:20,ammo:3,speed:80,pierce:true,cut:true},
+ {name:'Metralhadora',category:'Pesadas',type:'bullet',damage:17,power:7,ammo:100,speed:48,automatic:true},
+ {name:'Minigun',category:'Pesadas',type:'bullet',damage:12,power:5,ammo:200,speed:55,automatic:true},
+ {name:'Escopeta',category:'Pesadas',type:'shotgun',damage:10,power:5,ammo:8,speed:30,pellets:8},
+ {name:'Lança-Foguetes',category:'Especiais',type:'explosive',damage:65,power:18,ammo:5,speed:24},
+ {name:'Canhão de Plasma',category:'Especiais',type:'power',damage:75,power:15,ammo:10,speed:28,color:0x55aaff},
+ {name:'Raio Elétrico',category:'Especiais',type:'power',damage:40,power:8,ammo:30,speed:55,color:0xa16aff},
+ {name:'Arco',category:'Arcos',type:'arrow',damage:35,power:12,ammo:10,speed:34,pierce:true},
+ {name:'Besta',category:'Arcos',type:'arrow',damage:55,power:15,ammo:6,speed:45,pierce:true},
+ {name:'Faca Arremessável',category:'Corpo a corpo',type:'knife',damage:42,power:10,ammo:8,speed:30,pierce:true,cut:false},
+ {name:'Espada',category:'Corpo a corpo',type:'melee',damage:45,power:12,ammo:0,range:3,cut:true},
+ {name:'Machado',category:'Corpo a corpo',type:'melee',damage:60,power:16,ammo:0,range:3,cut:true},
+ {name:'Marreta',category:'Corpo a corpo',type:'melee',damage:70,power:22,ammo:0,range:3,cut:false},
+ {name:'Lâmina de Energia',category:'Corpo a corpo',type:'melee',damage:90,power:16,ammo:0,range:3,cut:true,color:0x50eaff},
+ {name:'Poder de Gravidade',category:'Especiais',type:'power',damage:20,power:25,ammo:30,speed:20,color:0xa16aff}
+];
+
+const ammoStore=new Map();
+weapons.forEach((w,i)=>ammoStore.set(i,w.ammo));
+
+function currentWeapon(){
+ return weapons[weaponIndex];
+}
+
+function ammo(){
+ return ammoStore.get(weaponIndex)||0;
+}
+
+// ==========================================
+// MENU E HUD
+// ==========================================
+
+function startGame(){
+ playing=true;
+ paused=false;
+ $('menuScreen').classList.add('hidden');
+ $('hud').classList.remove('hidden');
+ $('mobileControls').classList.remove('hidden');
+ $('timeFreeze').classList.remove('hidden');
+
+ if(!ragdolls.length)spawnRagdoll(0,-5);
+ updateHUD();
+ show('Bem-vindo ao laboratório!');
+}
+
+function pauseGame(){
+ paused=true;
+ playing=false;
+ document.exitPointerLock?.();
+ $('menuScreen').classList.remove('hidden');
+ $('hud').classList.add('hidden');
+ $('mobileControls').classList.add('hidden');
+ $('timeFreeze').classList.add('hidden');
+}
+
+function show(text){
+ $('message').textContent=text;
+ $('message').style.opacity=1;
+ clearTimeout(show.timer);
+ show.timer=setTimeout(()=>$('message').style.opacity=0,1800);
+}
+
+function updateHUD(){
+ if(!active)return;
+
+ const hp=Math.max(0,Math.round(active.health));
+
+ $('hp').textContent=hp+'%';
+ $('healthbar').style.width=hp+'%';
+ $('hits').textContent=active.hits;
+ $('holes').textContent=active.holes;
+ $('severed').textContent=active.severed;
+
+ $('state').textContent=
+  hp<=0?'Nocaute':
+  hp<30?'Muito ferido':
+  hp<75?'Machucado':'Normal';
+
+ $('weaponname').textContent=currentWeapon().name;
+ $('ammo').textContent=ammo();
+}
+
+function updateWeapon(){
+ $('weaponname').textContent=currentWeapon().name;
+ $('ammo').textContent=ammo();
+}
+
+function changeWeapon(d){
+ weaponIndex=(weaponIndex+d+weapons.length)%weapons.length;
+ updateWeapon();
+ show(currentWeapon().name);
+}
+
+// ==========================================
+// PARTES DO CORPO
+// ==========================================
+
+function createPart(name,x,y,z,sx,sy,sz,mass,color){
+ const body=new CANNON.Body({
+  mass,
+  material:bodyMat,
+  linearDamping:.25,
+  angularDamping:.4,
+  allowSleep:true
+ });
+
+ body.addShape(new CANNON.Box(
+  new CANNON.Vec3(sx/2,sy/2,sz/2)
+ ));
+ body.position.set(x,y,z);
+ world.addBody(body);
+
+ const mesh=new THREE.Mesh(
+  new THREE.BoxGeometry(sx,sy,sz),
+  new THREE.MeshStandardMaterial({
+   color,roughness:.7
+  })
+ );
+ mesh.castShadow=true;
+ mesh.receiveShadow=true;
+ scene.add(mesh);
+
+ return {
+  name,body,mesh,health:100,wounds:[],
+  detached:false
+ };
+}
+
+function connect(a,b,pa,pb){
+ const joint=new CANNON.PointToPointConstraint(
+  a.body,new CANNON.Vec3(...pa),
+  b.body,new CANNON.Vec3(...pb),
+  250
+ );
+ world.addConstraint(joint);
+ return joint;
+}
+
+// ==========================================
+// CRIAR RAGDOLL
+// ==========================================
+
+function spawnRagdoll(x=0,z=-5){
+ const p={};
+
+ p.torso=createPart('Tronco',x,2.2,z,.7,.9,.4,5,0x2786a8);
+ p.head=createPart('Cabeça',x,2.9,z,.42,.42,.42,1.2,0xd5a27d);
+ p.hip=createPart('Quadril',x,1.5,z,.62,.4,.4,3,0x35405c);
+
+ p.leftArm=createPart('Braço esquerdo',x-.58,2.2,z,.23,.75,.25,1,0xd5a27d);
+ p.rightArm=createPart('Braço direito',x+.58,2.2,z,.23,.75,.25,1,0xd5a27d);
+
+ p.leftLeg=createPart('Perna esquerda',x-.2,.95,z,.27,.8,.3,2,0x35405c);
+ p.rightLeg=createPart('Perna direita',x+.2,.95,z,.27,.8,.3,2,0x35405c);
+
+ const joints=[];
+
+ joints.push({a:p.torso,b:p.head,c:connect(p.torso,p.head,[0,.45,0],[0,-.2,0])});
+ joints.push({a:p.torso,b:p.hip,c:connect(p.torso,p.hip,[0,-.45,0],[0,.2,0])});
+ joints.push({a:p.torso,b:p.leftArm,c:connect(p.torso,p.leftArm,[-.35,.3,0],[0,.35,0])});
+ joints.push({a:p.torso,b:p.rightArm,c:connect(p.torso,p.rightArm,[.35,.3,0],[0,.35,0])});
+ joints.push({a:p.hip,b:p.leftLeg,c:connect(p.hip,p.leftLeg,[-.16,-.2,0],[0,.4,0])});
+ joints.push({a:p.hip,b:p.rightLeg,c:connect(p.hip,p.rightLeg,[.16,-.2,0],[0,.4,0])});
+
+ const r={
+  parts:p,joints,
+  health:100,hits:0,holes:0,severed:0,freezeData:null
+ };
+
+ ragdolls.push(r);
+ if(timeFrozen)freezeOneRagdoll(r);
+ active=r;
+ updateHUD();
+ return r;
+}
+
+// ==========================================
+// SINCRONIZAR MODELOS
+// ==========================================
+
+function syncRagdolls(){
+ for(const r of ragdolls){
+  for(const p of Object.values(r.parts)){
+   p.mesh.position.copy(p.body.position);
+   p.mesh.quaternion.copy(p.body.quaternion);
+  }
+ }
+}
+
+// Congela cada ragdoll de verdade (corpos estáticos e juntas removidas),
+// mantendo o restante da simulação funcionando normalmente.
+function freezeOneRagdoll(r){
+ if(r.freezeData)return;
+ const partStates=[];
+ for(const [name,p] of Object.entries(r.parts)){
+  const b=p.body;
+  partStates.push({
+   name,body:b,type:b.type,mass:b.mass,
+   position:b.position.clone(),quaternion:b.quaternion.clone()
+  });
+  b.velocity.set(0,0,0);
+  b.angularVelocity.set(0,0,0);
+  b.force.set(0,0,0);
+  b.torque.set(0,0,0);
+  b.type=CANNON.Body.STATIC;
+  b.mass=0;
+  b.updateMassProperties();
+  b.aabbNeedsUpdate=true;
+ }
+ const constraints=r.joints.map(j=>j.c).filter(c=>world.constraints.includes(c));
+ for(const c of constraints)world.removeConstraint(c);
+ r.freezeData={partStates,constraints};
+}
+
+function unfreezeOneRagdoll(r){
+ if(!r.freezeData)return;
+ const data=r.freezeData;
+ for(const state of data.partStates){
+  const b=state.body;
+  b.type=state.type;
+  b.mass=state.mass;
+  b.updateMassProperties();
+  b.position.copy(state.position);
+  b.quaternion.copy(state.quaternion);
+  b.velocity.set(0,0,0);
+  b.angularVelocity.set(0,0,0);
+  b.force.set(0,0,0);
+  b.torque.set(0,0,0);
+  b.aabbNeedsUpdate=true;
+  b.wakeUp();
+ }
+ for(const c of data.constraints){
+  if(!world.constraints.includes(c))world.addConstraint(c);
+ }
+ r.freezeData=null;
+}
+
+function toggleRagdollFreeze(){
+ if(!ragdolls.length){show('Não há ragdolls para congelar.');return;}
+ timeFrozen=!timeFrozen;
+ if(timeFrozen){
+  ragdolls.forEach(freezeOneRagdoll);
+  $('timeFreeze').textContent='▶ RETOMAR RAGDOLL';
+  $('timeFreeze').classList.add('frozen');
+  show('Ragdolls congelados no lugar!');
+ }else{
+  ragdolls.forEach(unfreezeOneRagdoll);
+  $('timeFreeze').textContent='❄ PARAR RAGDOLL';
+  $('timeFreeze').classList.remove('frozen');
+  show('Física dos ragdolls retomada!');
+ }
+ syncRagdolls();
+}
+
+// ==========================================
+// SANGUE ESTILIZADO
+// ==========================================
+
+function bloodEffect(position,amount=8){
+ for(let i=0;i<amount;i++){
+  const mesh=new THREE.Mesh(
+   new THREE.SphereGeometry(.025+Math.random()*.025,5,5),
+   new THREE.MeshBasicMaterial({
+    color:0x9e2432,
+    transparent:true,
+    opacity:.9
+   })
+  );
+
+  mesh.position.copy(position);
+  scene.add(mesh);
+
+  const velocity=new THREE.Vector3(
+   (Math.random()-.5)*2,
+   Math.random()*2,
+   (Math.random()-.5)*2
+  );
+
+  particles.push({
+   mesh,velocity,life:.6+Math.random()*.5
+  });
+ }
+}
+
+function updateParticles(dt){
+ for(let i=particles.length-1;i>=0;i--){
+  const p=particles[i];
+
+  p.life-=dt;
+  p.velocity.y-=9*dt;
+  p.mesh.position.addScaledVector(p.velocity,dt);
+  p.mesh.scale.multiplyScalar(.985);
+
+  if(p.life<=0){
+   scene.remove(p.mesh);
+   p.mesh.geometry.dispose();
+   p.mesh.material.dispose();
+   particles.splice(i,1);
+  }
+ }
+}
+
+// ==========================================
+// DESMEMBRAMENTO FICTÍCIO
+// ==========================================
+
+function severPart(r,part){
+ if(part.detached)return;
+
+ const joint=r.joints.find(j=>
+  (j.a===part||j.b===part)
+ );
+
+ if(joint){
+  world.removeConstraint(joint.c);
+  r.joints.splice(r.joints.indexOf(joint),1);
+ }
+
+ part.detached=true;
+ r.severed++;
+
+ // Impulso moderado para a peça separada
+ part.body.applyImpulse(
+  new CANNON.Vec3(
+   (Math.random()-.5)*2,
+   1+Math.random()*2,
+   (Math.random()-.5)*2
+  ),
+  part.body.position
+ );
+
+ bloodEffect(part.body.position,12);
+ show(part.name+' separado!');
+ updateHUD();
+}
+
+// ==========================================
+// DANO
+// ==========================================
+
+function applyDamage(r,part,damage,power,point,direction,weapon){
+ active=r;
+
+ part.health=Math.max(0,part.health-damage);
+ r.health=Math.max(0,r.health-damage);
+ r.hits++;
+ r.holes++;
+
+ // Força limitada para evitar ragdolls voando
+ const impulse=Math.min(power,10);
+
+ part.body.applyImpulse(
+  new CANNON.Vec3(
+   direction.x*impulse,
+   direction.y*impulse,
+   direction.z*impulse
+  ),
+  new CANNON.Vec3(point.x,point.y,point.z)
+ );
+
+ bloodEffect(point,weapon.type==='melee'?5:9);
+
+ // Separação de partes em armas que permitem corte
+ if(weapon.cut && part.health<=0){
+  severPart(r,part);
+ }
+
+ updateHUD();
+}
+
+// ==========================================
+// RAYCAST
+// ==========================================
+
+function rayFromCamera(spreadX=0,spreadY=0){
+ const ray=new THREE.Raycaster();
+ ray.setFromCamera(new THREE.Vector2(spreadX,spreadY),camera);
+ return ray;
+}
+
+function getHit(ray=rayFromCamera()){
+ const meshes=ragdolls.flatMap(r=>
+  Object.values(r.parts)
+   .filter(p=>!p.detached)
+   .map(p=>p.mesh)
+ );
+
+ const hit=ray.intersectObjects(meshes)[0];
+ if(!hit)return null;
+
+ const r=ragdolls.find(r=>
+  Object.values(r.parts).some(p=>p.mesh===hit.object)
+ );
+
+ if(!r)return null;
+
+ const part=Object.values(r.parts).find(
+  p=>p.mesh===hit.object
+ );
+
+ return {hit,r,part};
+}
+
+// ==========================================
+// PROJÉTEIS 3D
+// ==========================================
+
+function createProjectileModel(type,color){
+ const group=new THREE.Group();
+
+ const metal=new THREE.MeshStandardMaterial({
+  color:color||0xbac7d0,
+  metalness:.8,roughness:.3
+ });
+
+ const wood=new THREE.MeshStandardMaterial({color:0x684329});
+
+ if(type==='arrow'){
+  const shaft=new THREE.Mesh(
+   new THREE.CylinderGeometry(.022,.022,.9,8),wood
+  );
+  group.add(shaft);
+
+  const tip=new THREE.Mesh(
+   new THREE.ConeGeometry(.075,.23,8),metal
+  );
+  tip.position.y=.55;
+  group.add(tip);
+
+  const feathers=new THREE.Mesh(
+   new THREE.BoxGeometry(.14,.17,.025),
+   new THREE.MeshStandardMaterial({color:0xb52e36})
+  );
+  feathers.position.y=-.37;
+  group.add(feathers);
+ }
+ else if(type==='knife'){
+  const blade=new THREE.Mesh(
+   new THREE.BoxGeometry(.11,.68,.035),metal
+  );
+  blade.position.y=.16;
+  group.add(blade);
+
+  const handle=new THREE.Mesh(
+   new THREE.CylinderGeometry(.045,.045,.32,8),wood
+  );
+  handle.position.y=-.34;
+  group.add(handle);
+ }
+ else{
+  const core=new THREE.Mesh(
+   new THREE.SphereGeometry(.13,10,10),
+   new THREE.MeshBasicMaterial({color:color||0x55dfff})
+  );
+  group.add(core);
+ }
+ return group;
+}
+
+function launchProjectile(weapon){
+ const direction=new THREE.Vector3();
+ camera.getWorldDirection(direction);
+
+ const start=camera.position.clone().addScaledVector(direction,1);
+ const group=createProjectileModel(
+  weapon.type==='arrow'?'arrow':
+  weapon.type==='knife'?'knife':'energy',
+  weapon.color
+ );
+
+ group.position.copy(start);
+ scene.add(group);
+
+ const velocity=direction.clone().multiplyScalar(weapon.speed||35);
+
+ const body=new CANNON.Body({
+  mass:.15,
+  material:bodyMat,
+  shape:new CANNON.Sphere(.065),
+  position:new CANNON.Vec3(start.x,start.y,start.z),
+  linearDamping:.005
+ });
+
+ body.velocity.set(velocity.x,velocity.y,velocity.z);
+ world.addBody(body);
+
+ const projectile={
+  body,group,weapon,life:8,stuck:false,owner:null
+ };
+
+ body.addEventListener('collide',event=>{
+  if(projectile.stuck)return;
+
+  const r=ragdolls.find(r=>
+   Object.values(r.parts).some(p=>
+    p.body===event.body&&!p.detached
+   )
+  );
+
+  if(!r){
+   removeProjectile(projectile);
+   return;
+  }
+
+  const part=Object.values(r.parts).find(
+   p=>p.body===event.body
+  );
+
+  const point=body.position.clone();
+  const velocity=body.velocity.clone();
+
+  attachProjectile(projectile,r,part,point,velocity);
+ });
+
+ projectiles.push(projectile);
+}
+
+function attachProjectile(projectile,r,part,point,velocity){
+ if(projectile.stuck)return;
+
+ applyDamage(
+  r,part,
+  projectile.weapon.damage,
+  projectile.weapon.power,
+  point,
+  new THREE.Vector3(
+   velocity.x,velocity.y,velocity.z
+  ).normalize(),
+  projectile.weapon
+ );
+
+ // Converter coordenadas do projétil para coordenadas locais
+ const worldPosition=projectile.group.getWorldPosition(new THREE.Vector3());
+ const worldQuaternion=projectile.group.getWorldQuaternion(new THREE.Quaternion());
+
+ part.mesh.updateMatrixWorld(true);
+ part.mesh.add(projectile.group);
+
+ projectile.group.position.copy(part.mesh.worldToLocal(worldPosition));
+
+ projectile.group.quaternion.copy(
+  part.mesh.getWorldQuaternion(new THREE.Quaternion())
+   .invert().multiply(worldQuaternion)
+ );
+
+ world.removeBody(projectile.body);
+ projectile.body=null;
+ projectile.stuck=true;
+ projectile.owner=part;
+}
+
+function removeProjectile(p){
+ if(p.stuck)return;
+ if(p.body)world.removeBody(p.body);
+ scene.remove(p.group);
+ projectiles.splice(projectiles.indexOf(p),1);
+}
+
+function updateProjectiles(dt){
+ for(const p of [...projectiles]){
+  if(p.stuck)continue;
+
+  p.life-=dt;
+  if(p.life<=0){
+   removeProjectile(p);
+   continue;
+  }
+
+  p.group.position.copy(p.body.position);
+
+  const v=new THREE.Vector3(
+   p.body.velocity.x,p.body.velocity.y,p.body.velocity.z
+  );
+
+  if(v.lengthSq()>.01){
+   p.group.quaternion.setFromUnitVectors(
+    new THREE.Vector3(0,1,0),v.normalize()
+   );
+  }
+ }
+}
+
+// ==========================================
+// EXPLOSÃO FICTÍCIA
+// ==========================================
+
+function explosion(position,weapon){
+ bloodEffect(position,25);
+
+ for(const r of ragdolls){
+  for(const part of Object.values(r.parts)){
+   const d=part.body.position.distanceTo(
+    new CANNON.Vec3(position.x,position.y,position.z)
+   );
+
+   if(d<5){
+    const force=(5-d)*1.1;
+
+    part.body.applyImpulse(
+     new CANNON.Vec3(
+      0,force*.35,force*.35
+     ),
+     part.body.position
+    );
+
+    part.health=Math.max(0,part.health-weapon.damage*(1-d/5));
+    r.health=Math.max(0,r.health-weapon.damage*(1-d/5));
+    r.hits++;
+   }
+  }
+ }
+ updateHUD();
+}
+
+// ==========================================
+// ATAQUES CORPO A CORPO
+// ==========================================
+
+function meleeAttack(weapon){
+ const ray=rayFromCamera();
+ const result=getHit(ray);
+
+ if(!result){
+  show('Nenhum alvo no alcance');
+  return;
+ }
+
+ const {hit,r,part}=result;
+
+ if(hit.distance>(weapon.range||3)){
+  show('Alvo muito distante');
+  return;
+ }
+
+ const direction=ray.ray.direction;
+
+ applyDamage(
+  r,part,
+  weapon.damage,
+  weapon.power,
+  hit.point,
+  direction,
+  weapon
+ );
+
+ show(weapon.name+' atingiu o alvo!');
+}
+
+// ==========================================
+// DISPARAR
+// ==========================================
+
+function fireWeapon(){
+ if(!playing||paused||reloading)return;
+
+ const w=currentWeapon();
+
+ if(w.type==='melee'){
+  meleeAttack(w);
+  return;
+ }
+
+ if(ammo()<=0){
+  show('Sem munição! Recarregue.');
+  return;
+ }
+
+ ammoStore.set(weaponIndex,ammo()-1);
+
+ if(w.type==='arrow'||w.type==='knife'||w.type==='power'){
+  launchProjectile(w);
+  show(w.name+' disparado!');
+ }
+ else if(w.type==='explosive'){
+  const ray=rayFromCamera();
+  const hits=ray.intersectObjects(
+   ragdolls.flatMap(r=>Object.values(r.parts).map(p=>p.mesh))
+  );
+
+  if(hits.length){
+   explosion(hits[0].point,w);
+  }
+  show('Explosão!');
+ }
+ else if(w.type==='shotgun'){
+  for(let i=0;i<w.pellets;i++){
+   const ray=rayFromCamera(
+    (Math.random()-.5)*.12,
+    (Math.random()-.5)*.12
+   );
+
+   const result=getHit(ray);
+   if(result){
+    applyDamage(
+     result.r,result.part,
+     w.damage,w.power,
+     result.hit.point,
+     ray.ray.direction,w
+    );
+   }
+  }
+  show('Escopeta disparada!');
+ }
+ else{
+  const ray=rayFromCamera();
+  const result=getHit(ray);
+
+  if(result){
+   applyDamage(
+    result.r,result.part,
+    w.damage,w.power,
+    result.hit.point,
+    ray.ray.direction,w
+   );
+
+   if(w.pierce){
+    bloodEffect(result.hit.point,14);
+   }
+  }else{
+   show('Disparo efetuado');
+  }
+ }
+
+ updateWeapon();
+}
+
+// ==========================================
+// RECARREGAR
+// ==========================================
+
+function reload(){
+ const w=currentWeapon();
+
+ if(w.type==='melee')return;
+ if(reloading)return;
+
+ reloading=true;
+ show('Recarregando...');
+
+ setTimeout(()=>{
+  ammoStore.set(weaponIndex,w.ammo);
+  reloading=false;
+  updateWeapon();
+  show('Recarregado!');
+ },900);
+}
+
+// ==========================================
+// FERRAMENTAS
+// ==========================================
+
+function useTool(){
+ const result=getHit();
+
+ if(!result){
+  show('Mire em um ragdoll');
+  return;
+ }
+
+ const {hit,r,part}=result;
+ active=r;
+
+ if(tool==='push'){
+  const d=rayFromCamera().ray.direction;
+
+  part.body.applyImpulse(
+   new CANNON.Vec3(d.x*6,d.y*6,d.z*6),
+   new CANNON.Vec3(hit.point.x,hit.point.y,hit.point.z)
+  );
+
+  r.health=Math.max(0,r.health-3);
+  r.hits++;
+  bloodEffect(hit.point,3);
+  show('Impacto!');
+ }
+
+ if(tool==='heal'){
+  r.health=100;
+  r.hits=0;
+  r.holes=0;
+
+  for(const p of Object.values(r.parts)){
+   p.health=100;
+   p.detached=false;
+
+   for(const wound of p.wounds){
+    scene.remove(wound);
+   }
+   p.wounds=[];
+  }
+
+  show('Ragdoll recuperado!');
+ }
+
+ if(tool==='grab'){
+  grabbed=part;
+  show('Ragdoll agarrado');
+ }
+
+ updateHUD();
+}
+
+function selectTool(t){
+ tool=t;
+
+ document.querySelectorAll('[data-tool]').forEach(b=>{
+  b.classList.toggle('active',b.dataset.tool===t);
+ });
+}
+
+document.querySelectorAll('[data-tool]').forEach(b=>{
+ b.onclick=()=>selectTool(b.dataset.tool);
+});
+
+// ==========================================
+// MENU DE ARMAS
+// ==========================================
+
+let category='Todas';
+
+function renderWeaponGrid(){
+ const grid=$('weaponGrid');
+ grid.innerHTML='';
+
+ weapons.forEach((w,i)=>{
+  if(category!=='Todas'&&w.category!==category)return;
+
+  const card=document.createElement('button');
+  card.className='weaponCard';
+
+  card.innerHTML=
+   '<strong>'+w.name+'</strong>'+
+   '<small>'+w.category+'<br>'+
+   'Dano: '+w.damage+'<br>'+
+   'Munição: '+(w.ammo||'Infinita')+'</small>';
+
+  card.onclick=()=>{
+   weaponIndex=i;
+   updateWeapon();
+   $('weaponScreen').classList.add('hidden');
+   show('Equipado: '+w.name);
+  };
+
+  grid.appendChild(card);
+ });
+}
+
+document.querySelectorAll('[data-category]').forEach(b=>{
+ b.onclick=()=>{
+  category=b.dataset.category;
+  renderWeaponGrid();
+ };
+});
+
+$('openWeapons').onclick=()=>{
+ category='Todas';
+ renderWeaponGrid();
+ $('weaponScreen').classList.remove('hidden');
+};
+
+$('menuWeapons').onclick=()=>{
+ category='Todas';
+ renderWeaponGrid();
+ $('weaponScreen').classList.remove('hidden');
+};
+
+$('closeWeapons').onclick=()=>$('weaponScreen').classList.add('hidden');
+
+// ==========================================
+// OFICINA DE MODS
+// ==========================================
+
+// Prévia 3D independente da arma sendo configurada.
+let previewRenderer=null,previewScene=null,previewCamera=null,previewGroup=null;
+function initModelPreview(){
+ const canvas=$('modelPreview');
+ if(!canvas||previewRenderer)return;
+ try{
+  previewRenderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+  previewScene=new THREE.Scene();
+  previewCamera=new THREE.PerspectiveCamera(38,1,.1,100);
+  previewCamera.position.set(3.2,2.2,4.5);
+  previewCamera.lookAt(0,0,0);
+  previewScene.add(new THREE.HemisphereLight(0xffffff,0x34485a,2.2));
+  const keyLight=new THREE.DirectionalLight(0xffffff,2.5);
+  keyLight.position.set(3,5,4);previewScene.add(keyLight);
+  const rim=new THREE.DirectionalLight(0x36cfff,1.5);
+  rim.position.set(-4,2,-3);previewScene.add(rim);
+  const grid=new THREE.GridHelper(8,16,0x477087,0x203747);
+  grid.position.y=-.72;previewScene.add(grid);
+  previewGroup=new THREE.Group();previewScene.add(previewGroup);
+  refreshModelPreview();
+ }catch(err){
+  console.error('Não foi possível iniciar a prévia 3D:',err);
+  $('previewHint').textContent='Prévia 3D indisponível neste navegador. O restante da oficina continua funcionando.';
+ }
+}
+function refreshModelPreview(){
+ if(!previewRenderer||!previewGroup)return;
+ for(const obj of [...previewGroup.children]){
+  previewGroup.remove(obj);
+  obj.traverse(o=>{
+   if(o.geometry)o.geometry.dispose();
+   if(o.material){
+    if(Array.isArray(o.material))o.material.forEach(m=>m.dispose());
+    else o.material.dispose();
+   }
+  });
+ }
+ const color=$('modColor').value||'#42caff';
+ const shape=$('modShape').value;
+ const scale=THREE.MathUtils.clamp(+$('modSize').value/80,.35,2.25);
+ const mat=new THREE.MeshStandardMaterial({color,metalness:.68,roughness:.32});
+ const dark=new THREE.MeshStandardMaterial({color:0x202a32,metalness:.55,roughness:.48});
+ const glow=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.65,metalness:.25,roughness:.25});
+ const addBox=(w,h,d,x,y,z,m=mat)=>{
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w*scale,h*scale,d*scale),m);
+  mesh.position.set(x*scale,y*scale,z*scale);mesh.castShadow=true;previewGroup.add(mesh);return mesh;
+ };
+ if(shape==='blade'){
+  addBox(.16,.18,.22,0,-.32,0,dark);
+  addBox(.12,.65,.12,0,.05,0,glow);
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(.09*scale,.28*scale,4),mat);
+  tip.position.y=.51*scale;previewGroup.add(tip);
+  addBox(.52,.09,.16,0,-.27,0,dark);
+ }else if(shape==='energy'){
+  addBox(.2,.25,.25,0,-.34,0,dark);
+  const core=new THREE.Mesh(new THREE.CylinderGeometry(.09*scale,.09*scale,.95*scale,12),glow);
+  core.position.y=.2*scale;previewGroup.add(core);
+  addBox(.38,.1,.28,0,-.18,0,dark);
+ }else{
+  const bodyLength=shape==='long'?1.65:1.15;
+  addBox(.42,.3,bodyLength,0,0,0,mat);
+  addBox(.16,.18,.72,0,.02,-.62,dark);
+  addBox(.18,.52,.24,0,-.36,.18,dark);
+  addBox(.28,.12,.36,0,.22,.42,glow);
+  addBox(.13,.13,.62,0,.03,-1.05,dark);
+  addBox(.22,.12,.28,0,-.04,.67,mat);
+ }
+ previewGroup.rotation.y=-.45;
+ const w=Math.max(1,$('modelPreview').clientWidth||600);
+ const h=Math.max(1,$('modelPreview').clientHeight||260);
+ previewRenderer.setSize(w,h,false);
+ previewCamera.aspect=w/h;previewCamera.updateProjectionMatrix();
+ previewRenderer.render(previewScene,previewCamera);
+}
+function openModScreen(){
+ $('modScreen').classList.remove('hidden');
+ requestAnimationFrame(()=>{
+  if(!previewRenderer)initModelPreview();
+  else refreshModelPreview();
+ });
+}
+
+const modFields=[
+ 'modName','modType','modColor','modShape',
+ 'modDamage','modPower','modSpeed','modAmmo',
+ 'modPierce','modCut','modSize','modAccuracy'
+];
+
+function renderMods(){
+ const list=$('modList');
+ list.innerHTML='<h3>MEUS MODS</h3>';
+
+ if(!mods.length){
+  list.innerHTML+='<p>Nenhum mod criado ainda.</p>';
+  return;
+ }
+
+ mods.forEach((m,i)=>{
+  const row=document.createElement('div');
+  row.className='panel';
+  row.style.margin='8px 0';
+
+  const title=document.createElement('b');
+  title.textContent=m.name+' — '+m.type;
+  row.appendChild(title);
+
+  const description=document.createElement('p');
+  description.textContent='Dano: '+m.damage+' | Força: '+m.power+' | Munição: '+m.ammo;
+  row.appendChild(description);
+
+  const equip=document.createElement('button');
+  equip.textContent='EQUIPAR';
+  equip.onclick=()=>{
+   const index=weapons.length;
+   weapons.push({
+    name:m.name,
+    category:'Especiais',
+    type:m.type,
+    damage:m.damage,
+    power:m.power,
+    ammo:m.ammo,
+    speed:m.speed,
+    color:new THREE.Color(m.color),
+    pierce:m.pierce,
+    cut:m.cut,
+    range:3
+   });
+
+   ammoStore.set(index,m.ammo);
+   weaponIndex=index;
+   updateWeapon();
+   show('Mod equipado!');
+  };
+
+  const del=document.createElement('button');
+  del.textContent='EXCLUIR';
+  del.onclick=()=>{
+   mods.splice(i,1);
+   renderMods();
+  };
+
+  row.append(equip,del);
+  list.appendChild(row);
+ });
+}
+
+function createMod(){
+ const m={
+  name:$('modName').value.trim()||'Mod sem nome',
+  type:$('modType').value,
+  color:$('modColor').value,
+  shape:$('modShape').value,
+  damage:+$('modDamage').value,
+  power:+$('modPower').value,
+  speed:+$('modSpeed').value,
+  ammo:+$('modAmmo').value,
+  pierce:$('modPierce').value==='true',
+  cut:$('modCut').value==='true',
+  size:+$('modSize').value,
+  accuracy:+$('modAccuracy').value
+ };
+
+ mods.push(m);
+ renderMods();
+ show('Mod criado com sucesso!');
+}
+
+$('createMod').onclick=createMod;
+
+$('openMods').onclick=openModScreen;
+$('menuMods').onclick=openModScreen;
+$('closeMods').onclick=()=>$('modScreen').classList.add('hidden');
+$('closeModsX').onclick=()=>$('modScreen').classList.add('hidden');
+$('timeFreeze').onclick=toggleRagdollFreeze;
+
+for(const [id,out] of [
+ ['modDamage','damageValue'],
+ ['modPower','powerValue'],
+ ['modSpeed','speedValue'],
+ ['modAmmo','ammoValue'],
+ ['modSize','sizeValue'],
+ ['modAccuracy','accuracyValue']
+]){
+ $(id).oninput=()=>{$(out).textContent=$(id).value;if(id==='modSize')refreshModelPreview();};
+}
+
+$('modColor').addEventListener('input',refreshModelPreview);
+$('modShape').addEventListener('change',refreshModelPreview);
+$('modScreen').addEventListener('click',()=>requestAnimationFrame(refreshModelPreview));
+
+document.querySelectorAll('[data-modtab]').forEach(b=>{
+ b.onclick=()=>{
+  selectedModTab=b.dataset.modtab;
+  document.querySelectorAll('[data-modtab]').forEach(x=>
+   x.classList.toggle('active',x===b)
+  );
+  show('Categoria de configuração: '+selectedModTab);
+ };
+});
+
+// ==========================================
+// MOVIMENTAÇÃO DO JOGADOR
+// ==========================================
+
+let verticalVelocity=0;
+let grounded=true;
+const playerHeight=1.7;
+
+function jump(){
+ if(!playing||paused||!grounded)return;
+
+ verticalVelocity=7.5;
+ grounded=false;
+}
+
+function movePlayer(dt){
+ const forward=new THREE.Vector3(
+  -Math.sin(yaw),0,-Math.cos(yaw)
+ );
+
+ const right=new THREE.Vector3(
+  Math.cos(yaw),0,-Math.sin(yaw)
+ );
+
+ const move=new THREE.Vector3();
+
+ if(keys.KeyW)move.add(forward);
+ if(keys.KeyS)move.sub(forward);
+ if(keys.KeyD)move.add(right);
+ if(keys.KeyA)move.sub(right);
+
+ if(joystick.x||joystick.y){
+  move.addScaledVector(right,joystick.x);
+  move.addScaledVector(forward,-joystick.y);
+ }
+
+ if(move.lengthSq()>0){
+  move.normalize();
+  camera.position.addScaledVector(move,dt*5);
+ }
+
+ // GRAVIDADE E PULO
+ verticalVelocity-=18*dt;
+ camera.position.y+=verticalVelocity*dt;
+
+ if(camera.position.y<=playerHeight){
+  camera.position.y=playerHeight;
+  verticalVelocity=0;
+  grounded=true;
+ }
+
+ camera.position.x=THREE.MathUtils.clamp(camera.position.x,-8,8);
+ camera.position.z=THREE.MathUtils.clamp(camera.position.z,-25,8);
+}
+
+// ==========================================
+// AGARRAR RAGDOLL
+// ==========================================
+
+function updateGrab(){
+ if(!grabbed)return;
+
+ const direction=new THREE.Vector3();
+ camera.getWorldDirection(direction);
+
+ const target=camera.position.clone()
+  .addScaledVector(direction,4);
+
+ const p=grabbed.body.position;
+
+ grabbed.body.applyForce(
+  new CANNON.Vec3(
+   THREE.MathUtils.clamp((target.x-p.x)*20,-35,35),
+   THREE.MathUtils.clamp((target.y-p.y)*20,-35,35),
+   THREE.MathUtils.clamp((target.z-p.z)*20,-35,35)
+  ),
+  p
+ );
+}
+
+// ==========================================
+// TECLADO E MOUSE
+// ==========================================
+
+renderer.domElement.addEventListener('click',()=>{
+ if(playing&&!locked&&innerWidth>700){
+  renderer.domElement.requestPointerLock();
+ }
+});
+
+document.addEventListener('pointerlockchange',()=>{
+ locked=document.pointerLockElement===renderer.domElement;
+});
+
+document.addEventListener('mousemove',e=>{
+ if(!locked||!playing)return;
+
+ yaw-=e.movementX*.002;
+ pitch-=e.movementY*.002;
+ pitch=THREE.MathUtils.clamp(pitch,-1.2,1.2);
+
+ camera.rotation.set(pitch,yaw,0,'YXZ');
+});
+
+document.addEventListener('mousedown',e=>{
+ if(e.button!==0||!playing||paused)return;
+
+ if(tool==='shoot')fireWeapon();
+ else useTool();
+});
+
+document.addEventListener('mouseup',()=>{
+ grabbed=null;
+});
+
+document.addEventListener('keydown',e=>{
+ keys[e.code]=true;
+
+ if(e.repeat)return;
+
+ if(e.code==='Space')jump();
+ if(e.code==='KeyQ')changeWeapon(-1);
+ if(e.code==='KeyE')changeWeapon(1);
+ if(e.code==='KeyR')reload();
+
+ if(e.code==='Digit1')selectTool('grab');
+ if(e.code==='Digit2')selectTool('push');
+ if(e.code==='Digit3')selectTool('shoot');
+ if(e.code==='Digit4')selectTool('heal');
+
+ if(e.code==='KeyT'){
+  if($('modScreen').classList.contains('hidden'))openModScreen();
+  else $('modScreen').classList.add('hidden');
+ }
+ if(e.code==='Escape'&&!$('modScreen').classList.contains('hidden'))$('modScreen').classList.add('hidden');
+});
+
+document.addEventListener('keyup',e=>{
+ keys[e.code]=false;
+});
+
+// ==========================================
+// MOBILE: JOYSTICK
+// ==========================================
+
+const joystick={x:0,y:0};
+let joystickPointer=null;
+
+const base=$('joystick');
+const stick=$('stick');
+
+base.addEventListener('pointerdown',e=>{
+ joystickPointer=e.pointerId;
+ base.setPointerCapture(e.pointerId);
+ updateJoystick(e);
+});
+
+base.addEventListener('pointermove',e=>{
+ if(e.pointerId===joystickPointer)updateJoystick(e);
+});
+
+function updateJoystick(e){
+ const rect=base.getBoundingClientRect();
+
+ let x=e.clientX-(rect.left+rect.width/2);
+ let y=e.clientY-(rect.top+rect.height/2);
+
+ const max=40;
+ const length=Math.hypot(x,y);
+
+ if(length>max){
+  x=x/length*max;
+  y=y/length*max;
+ }
+
+ joystick.x=x/max;
+ joystick.y=y/max;
+
+ stick.style.transform=`translate(${x}px,${y}px)`;
+}
+
+function resetJoystick(){
+ joystick.x=0;
+ joystick.y=0;
+ joystickPointer=null;
+ stick.style.transform='translate(0px,0px)';
+}
+
+base.addEventListener('pointerup',resetJoystick);
+base.addEventListener('pointercancel',resetJoystick);
+
+// ==========================================
+// MOBILE: OLHAR COM O DEDO
+// ==========================================
+
+let lookPointer=null;
+let lastTouchX=0,lastTouchY=0;
+
+$('lookArea').addEventListener('pointerdown',e=>{
+ lookPointer=e.pointerId;
+ lastTouchX=e.clientX;
+ lastTouchY=e.clientY;
+ $('lookArea').setPointerCapture(e.pointerId);
+});
+
+$('lookArea').addEventListener('pointermove',e=>{
+ if(e.pointerId!==lookPointer)return;
+
+ const dx=e.clientX-lastTouchX;
+ const dy=e.clientY-lastTouchY;
+
+ lastTouchX=e.clientX;
+ lastTouchY=e.clientY;
+
+ yaw-=dx*.005;
+ pitch=THREE.MathUtils.clamp(pitch-dy*.005,-1.2,1.2);
+
+ camera.rotation.set(pitch,yaw,0,'YXZ');
+});
+
+function endLook(){
+ lookPointer=null;
+}
+
+$('lookArea').addEventListener('pointerup',endLook);
+$('lookArea').addEventListener('pointercancel',endLook);
+
+// ==========================================
+// MOBILE: BOTÕES
+// ==========================================
+
+$('mJump').onclick=jump;
+$('mFire').onpointerdown=e=>{
+ e.preventDefault();
+ fireWeapon();
+};
+$('mReload').onclick=reload;
+$('mWeapon').onclick=()=>changeWeapon(1);
+$('mMenu').onclick=pauseGame;
+$('mGrab').onclick=()=>{
+ selectTool('grab');
+ const result=getHit();
+ if(result)grabbed=result.part;
+};
+
+// ==========================================
+// BOTÕES GERAIS
+// ==========================================
+
+$('play').onclick=startGame;
+$('pause').onclick=pauseGame;
+
+$('menuSettings').onclick=()=>{
+ alert(
+  'PC: WASD, mouse, espaço e Q/E.\n'+
+  'Mobile: joystick esquerdo e área direita para olhar.'
+ );
+};
+
+$('previous').onclick=()=>changeWeapon(-1);
+$('next').onclick=()=>changeWeapon(1);
+$('fire').onclick=fireWeapon;
+$('reload').onclick=reload;
+
+// ==========================================
+// LOOP
+// ==========================================
+
+const clock=new THREE.Clock();
+
+function animate(){
+ requestAnimationFrame(animate);
+
+ const dt=Math.min(clock.getDelta(),.033);
+
+ if(playing&&!paused){
+  world.step(1/60,dt,3);
+
+  movePlayer(dt);
+  updateGrab();
+  syncRagdolls();
+  updateProjectiles(dt);
+  updateParticles(dt);
+ }
+
+ renderer.render(scene,camera);
+ if(previewRenderer&&!$('modScreen').classList.contains('hidden')){
+  if(previewGroup)previewGroup.rotation.y+=dt*.35;
+  previewRenderer.render(previewScene,previewCamera);
+ }
+}
+
+// ==========================================
+// INICIAR
+// ==========================================
+
+spawnRagdoll(0,-5);
+updateWeapon();
+renderWeaponGrid();
+renderMods();
+animate();
+
+window.addEventListener('resize',()=>{
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
+ refreshModelPreview();
+});
+
+</script>
+</body>
+</html>
